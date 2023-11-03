@@ -12,7 +12,7 @@ import org.hibernate.annotations.GenericGenerator;
 public class Authority {
     @Id
     @GeneratedValue(strategy= GenerationType.AUTO,generator="native")
-    @GenericGenerator(name = "native",strategy = "native")
+    @GenericGenerator(name = "native")
     private Long id;
 
     private String name;

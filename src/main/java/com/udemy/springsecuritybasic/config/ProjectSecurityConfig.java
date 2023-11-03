@@ -1,6 +1,6 @@
 package com.udemy.springsecuritybasic.config;
 
-import com.udemy.springsecuritybasic.filter.CsrfCookieFilter;
+import com.udemy.springsecuritybasic.filter.*;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,6 +16,7 @@ import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 
+import java.util.Arrays;
 import java.util.Collections;
 
 @Configuration
@@ -26,11 +27,8 @@ public class ProjectSecurityConfig {
         requestHandler.setCsrfRequestAttributeName("_csrf");
 
         http
-                .securityContext((securitCtxt) -> {
-                    securitCtxt.requireExplicitSave(false);
-                })
                 .sessionManagement((session) -> {
-                    session.sessionCreationPolicy(SessionCreationPolicy.ALWAYS);
+                    session.sessionCreationPolicy(SessionCreationPolicy.STATELESS);
                 })
                 .cors((cors) -> {
             cors.configurationSource(new CorsConfigurationSource() {
@@ -38,10 +36,11 @@ public class ProjectSecurityConfig {
                 public CorsConfiguration getCorsConfiguration(HttpServletRequest request) {
                     CorsConfiguration config = new CorsConfiguration();
                     config.setAllowedOrigins(Collections.singletonList("http://localhost:4200"));
-//                    config.setAllowedOrigins(Collections.singletonList("*")); //this is added cause of postman
+//                    config.setAllowedOrigins(Collections.singletonList("*")); //postman
                     config.setAllowedMethods(Collections.singletonList("*"));
                     config.setAllowCredentials(true);
                     config.setAllowedHeaders(Collections.singletonList("*"));
+                    config.setExposedHeaders(Arrays.asList("Authorization"));
                     config.setMaxAge(3600L);
                     return config;
                 }
@@ -49,7 +48,11 @@ public class ProjectSecurityConfig {
         }).csrf((csrf) -> {
             csrf.csrfTokenRequestHandler(requestHandler).ignoringRequestMatchers("/contact","/register")
                     .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse());
-        }).addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class);
+        }).addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class)
+                .addFilterBefore(new RequestValidationBeforeFilter(), BasicAuthenticationFilter.class)
+                .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class)
+                .addFilterAfter(new JWTTokenValidatorFilter(), BasicAuthenticationFilter.class)
+                .addFilterBefore(new JWTTokenGeneratorFilter(), BasicAuthenticationFilter.class);
         http.authorizeHttpRequests((authorize) ->
                         authorize
                                 .requestMatchers("/myAccount").hasRole("USER")
@@ -70,4 +73,3 @@ public class ProjectSecurityConfig {
         return new BCryptPasswordEncoder();
     }
 }
-
